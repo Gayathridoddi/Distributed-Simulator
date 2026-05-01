@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    
+
+  </head>
+    
+  <body>
+  <!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cellular Circuit Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    html, body { box-sizing: border-box; height: 100%; }
+    * { font-family: 'Space Grotesk', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    @keyframes pulse-glow {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.3); }
+    }
+    
+    .cell-active {
+      animation: pulse-glow 1s ease-in-out infinite;
+    }
+    
+    .signal-flow {
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        currentColor 50%, 
+        transparent 100%);
+      animation: flow 1.5s linear infinite;
+    }
+    
+    @keyframes flow {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full overflow-auto" style="background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);">
+   <header class="p-6 border-b border-cyan-900/30 sticky top-0 z-10" style="background: linear-gradient(135deg, rgba(15,23,42,0.8) 0%, rgba(30,58,138,0.4) 100%);">
+    <h1 id="main-title" class="text-3xl font-bold text-cyan-400 tracking-wide">Distributed Cellular Circuit Simulator</h1>
+    <p class="text-cyan-600/70 text-sm mt-1 mono">Gene expression • Signal diffusion • Transcriptional regulation</p>
+   </header>
+   <div class="p-6 space-y-6"><!-- Controls Panel -->
+    <section class="bg-slate-900/50 rounded-xl p-5 border border-cyan-900/30">
+     <h2 class="text-cyan-400 font-semibold mb-4 flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+      </svg> Parameters</h2>
+     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div>
+       <label class="text-cyan-600/70 text-xs block mb-1">Degradation</label> <input type="range" id="param-degradation" min="0.01" max="0.5" step="0.01" value="0.1" class="w-full accent-cyan-500"> <span id="val-degradation" class="text-cyan-400 text-xs mono">0.10</span>
+      </div>
+      <div>
+       <label class="text-cyan-600/70 text-xs block mb-1">Base Production</label> <input type="range" id="param-production" min="1" max="10" step="0.5" value="4" class="w-full accent-cyan-500"> <span id="val-production" class="text-cyan-400 text-xs mono">4.0</span>
+      </div>
+      <div>
+       <label class="text-cyan-600/70 text-xs block mb-1">Diffusion Rate</label> <input type="range" id="param-diffusion" min="0.1" max="1" step="0.05" value="0.5" class="w-full accent-cyan-500"> <span id="val-diffusion" class="text-cyan-400 text-xs mono">0.50</span>
+      </div>
+      <div>
+       <label class="text-cyan-600/70 text-xs block mb-1">Noise Strength</label> <input type="range" id="param-noise" min="0" max="0.3" step="0.01" value="0.1" class="w-full accent-cyan-500"> <span id="val-noise" class="text-cyan-400 text-xs mono">0.10</span>
+      </div>
+     </div>
+     <div class="mt-4 pt-4 border-t border-purple-900/30">
+      <h3 class="text-purple-400 font-semibold mb-3 text-sm flex items-center gap-2">
+       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+       </svg> Gene Regulation &amp; Regulators</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+       <div>
+        <label class="text-purple-600/70 text-xs block mb-1">Regulation Type</label> <select id="param-regulation-type" class="w-full bg-slate-800 text-purple-400 px-2 py-1 rounded text-xs border border-purple-900/30"><option value="none">None</option><option value="positive">Positive (Activation)</option><option value="negative">Negative (Inhibition)</option><option value="toggle">Toggle Switch</option></select>
+       </div>
+       <div>
+        <label class="text-purple-600/70 text-xs block mb-1">Regulator Strength</label> <input type="range" id="param-regulator-strength" min="0.5" max="5" step="0.1" value="2" class="w-full accent-purple-500"> <span id="val-regulator-strength" class="text-purple-400 text-xs mono">2.0</span>
+       </div>
+       <div>
+        <label class="text-purple-600/70 text-xs block mb-1">Threshold</label> <input type="range" id="param-regulation-threshold" min="0.1" max="10" step="0.1" value="3" class="w-full accent-purple-500"> <span id="val-regulation-threshold" class="text-purple-400 text-xs mono">3.0</span>
+       </div>
+       <div>
+        <label class="text-purple-600/70 text-xs block mb-1">Regulator Decay</label> <input type="range" id="param-regulator-decay" min="0.01" max="0.2" step="0.01" value="0.05" class="w-full accent-purple-500"> <span id="val-regulator-decay" class="text-purple-400 text-xs mono">0.05</span>
+       </div>
+      </div>
+     </div>
+     <div class="flex gap-3 mt-5">
+      <button id="btn-start" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-900 font-semibold rounded-lg transition-all"> ▶ Start </button> <button id="btn-pause" class="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 font-semibold rounded-lg transition-all"> ⏸ Pause </button> <button id="btn-reset" class="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 font-semibold rounded-lg transition-all"> ↺ Reset </button>
+      <div class="flex-1"></div>
+      <div class="flex items-center gap-2 text-cyan-600/70">
+       <span class="text-xs">Time:</span> <span id="time-display" class="mono text-cyan-400">0.00s</span>
+      </div>
+     </div>
+    </section><!-- Cells Visualization -->
+    <section class="bg-slate-900/50 rounded-xl p-5 border border-cyan-900/30">
+     <h2 class="text-cyan-400 font-semibold mb-4 flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+      </svg> Cell Array (5 Cells × 10 Modules)</h2>
+     <p class="text-purple-600/70 text-xs mb-3">🔵 Cyan: Gene expression | 🟣 Purple dot: Regulator present</p>
+     <div id="cells-container" class="flex gap-3 overflow-x-auto pb-4">
+      <!-- Cells will be generated here -->
+     </div><!-- Signal flow indicator -->
+     <div class="mt-4 flex items-center gap-2">
+      <span class="text-cyan-600/70 text-xs">Signal Diffusion:</span>
+      <div class="flex-1 h-1 bg-slate-800 rounded overflow-hidden relative">
+       <div class="signal-flow absolute inset-0 text-cyan-500 opacity-50"></div>
+      </div>
+     </div>
+    </section><!-- Charts -->
+    <div class="grid md:grid-cols-2 gap-6"><!-- Protein Levels Chart -->
+     <section class="bg-slate-900/50 rounded-xl p-5 border border-cyan-900/30">
+      <h2 class="text-cyan-400 font-semibold mb-3 text-sm">Average Protein Levels</h2>
+      <canvas id="chart-protein" class="w-full h-40"></canvas>
+     </section><!-- Regulator Levels Chart -->
+     <section class="bg-slate-900/50 rounded-xl p-5 border border-purple-900/30">
+      <h2 class="text-purple-400 font-semibold mb-3 text-sm">Regulator Concentrations</h2>
+      <canvas id="chart-regulator" class="w-full h-40"></canvas>
+     </section>
+    </div><!-- Stats Panel -->
+    <section class="bg-slate-900/50 rounded-xl p-5 border border-cyan-900/30">
+     <h2 class="text-cyan-400 font-semibold mb-3">System Statistics</h2>
+     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div class="bg-slate-800/50 rounded-lg p-3 text-center">
+       <div class="text-cyan-600/70 text-xs mb-1">
+        External Input
+       </div>
+       <div id="stat-input" class="text-xl font-bold text-emerald-400 mono">
+        OFF
+       </div>
+      </div>
+      <div class="bg-slate-800/50 rounded-lg p-3 text-center">
+       <div class="text-cyan-600/70 text-xs mb-1">
+        Avg Gene Expr.
+       </div>
+       <div id="stat-signal" class="text-xl font-bold text-cyan-400 mono">
+        0.00
+       </div>
+      </div>
+      <div class="bg-slate-800/50 rounded-lg p-3 text-center">
+       <div class="text-purple-600/70 text-xs mb-1">
+        Avg Regulators
+       </div>
+       <div id="stat-regulators" class="text-xl font-bold text-purple-400 mono">
+        0.00
+       </div>
+      </div>
+      <div class="bg-slate-800/50 rounded-lg p-3 text-center">
+       <div class="text-cyan-600/70 text-xs mb-1">
+        Active Toggles
+       </div>
+       <div id="stat-toggles" class="text-xl font-bold text-amber-400 mono">
+        0/5
+       </div>
+      </div>
+      <div class="bg-slate-800/50 rounded-lg p-3 text-center">
+       <div class="text-cyan-600/70 text-xs mb-1">
+        Resource Usage
+       </div>
+       <div id="stat-resource" class="text-xl font-bold text-rose-400 mono">
+        0%
+       </div>
+      </div>
+     </div>
+    </section>
+   </div>
+  </div>
+  <script>
+    // ================= CONFIGURATION =================
+    const CELLS = 5;
+    const MODULES_PER_CELL = 10;
+    const DT = 0.01;
+    const RESOURCE_CAPACITY = 20.0;
+    const TOGGLE_THRESHOLD = 2.0;
+    const SIGNAL_DECAY = 0.05;
+
+    // ================= STATE =================
+    let protein = [];
+    let promoter = [];
+    let signal = [];
+    let regulators = [];
+    let toggleState = [];
+    let time = 0;
+    let running = false;
+    let animationId = null;
+
+    // Parameters (mutable)
+    let params = {
+      degradation: 0.1,
+      baseProduction: 4.0,
+      signalDiffusion: 0.5,
+      noiseStrength: 0.1,
+      regulationType: 'none',
+      regulatorStrength: 2.0,
+      regulationThreshold: 3.0,
+      regulatorDecay: 0.05
+    };
+
+    // Chart data
+    const historyLength = 200;
+    let proteinHistory = [];
+    let regulatorHistory = [];
+
+    // ================= INITIALIZATION =================
+    function initSimulation() {
+      protein = [];
+      promoter = [];
+      signal = [];
+      regulators = [];
+      toggleState = [];
+      time = 0;
+
+      for (let c = 0; c < CELLS; c++) {
+        protein[c] = new Array(MODULES_PER_CELL).fill(0);
+        promoter[c] = [];
+        for (let m = 0; m < MODULES_PER_CELL; m++) {
+          promoter[c][m] = 0.5 + Math.random();
+        }
+        signal[c] = 0;
+        regulators[c] = 0;
+        toggleState[c] = 0;
+      }
+
+      proteinHistory = Array(CELLS).fill(null).map(() => []);
+      regulatorHistory = Array(CELLS).fill(null).map(() => []);
+
+      renderCells();
+      updateDisplay();
+    }
+
+    // ================= NOISE FUNCTION =================
+    function noise() {
+      return params.noiseStrength * (2.0 * Math.random() - 1.0);
+    }
+
+    // ================= REGULATION LOGIC =================
+    function applyRegulation(regulatorLevel, baseProduction) {
+      if (params.regulationType === 'none') {
+        return baseProduction;
+      } else if (params.regulationType === 'positive') {
+        // Activation: high regulator increases production
+        if (regulatorLevel > params.regulationThreshold) {
+          const factor = 1 + (regulatorLevel / 5.0) * params.regulatorStrength;
+          return baseProduction * factor;
+        }
+        return baseProduction;
+      } else if (params.regulationType === 'negative') {
+        // Inhibition: high regulator decreases production
+        if (regulatorLevel > params.regulationThreshold) {
+          const suppressFactor = 1 - (regulatorLevel / 5.0) * params.regulatorStrength;
+          return baseProduction * Math.max(0.1, suppressFactor);
+        }
+        return baseProduction;
+      } else if (params.regulationType === 'toggle') {
+        // Toggle switch: sharp ON/OFF
+        if (regulatorLevel > params.regulationThreshold) {
+          return baseProduction * (1 + params.regulatorStrength);
+        } else {
+          return baseProduction * 0.2;
+        }
+      }
+      return baseProduction;
+    }
+
+    // ================= SIMULATION STEP =================
+    function simulationStep() {
+      const externalInput = Math.sin(0.1 * time) > 0 ? 1.0 : 0.0;
+
+      for (let c = 0; c < CELLS; c++) {
+        // Calculate resource demand
+        let demand = 0;
+        for (let m = 0; m < MODULES_PER_CELL; m++) {
+          demand += promoter[c][m];
+        }
+
+        let scale = RESOURCE_CAPACITY / (demand + 1e-9);
+        if (scale > 1.0) scale = 1.0;
+
+        // Toggle switch logic
+        if (signal[c] > TOGGLE_THRESHOLD) toggleState[c] = 1.0;
+        if (signal[c] < 0.5) toggleState[c] = 0.0;
+
+        // Update each module with regulation
+        for (let m = 0; m < MODULES_PER_CELL; m++) {
+          const input = m === 0 ? externalInput : toggleState[c];
+          let production = params.baseProduction * promoter[c][m] * scale * input;
+          
+          // Apply regulation based on regulator concentration
+          production = applyRegulation(regulators[c], production);
+          
+          const dP = (production - params.degradation * protein[c][m]) * DT + noise();
+          protein[c][m] += dP;
+          if (protein[c][m] < 0) protein[c][m] = 0;
+        }
+
+        // Signal production from last module
+        const sigProd = 0.2 * protein[c][MODULES_PER_CELL - 1];
+        signal[c] += (sigProd - SIGNAL_DECAY * signal[c]) * DT;
+
+        // Regulator production from signal and degradation
+        const regProd = 0.1 * signal[c];
+        regulators[c] += (regProd - params.regulatorDecay * regulators[c]) * DT;
+        if (regulators[c] < 0) regulators[c] = 0;
+      }
+
+      // Diffusion between cells (signal)
+      const newSignal = [...signal];
+      for (let c = 0; c < CELLS; c++) {
+        const left = c > 0 ? signal[c - 1] : signal[c];
+        const right = c < CELLS - 1 ? signal[c + 1] : signal[c];
+        newSignal[c] = signal[c] + params.signalDiffusion * (left + right - 2 * signal[c]) * DT;
+      }
+      signal = newSignal;
+
+      // Diffusion between cells (regulators)
+      const newRegulators = [...regulators];
+      for (let c = 0; c < CELLS; c++) {
+        const left = c > 0 ? regulators[c - 1] : regulators[c];
+        const right = c < CELLS - 1 ? regulators[c + 1] : regulators[c];
+        newRegulators[c] = regulators[c] + params.signalDiffusion * 0.5 * (left + right - 2 * regulators[c]) * DT;
+      }
+      regulators = newRegulators;
+
+      time += DT;
+
+      // Record history
+      for (let c = 0; c < CELLS; c++) {
+        const avgProtein = protein[c].reduce((a, b) => a + b, 0) / MODULES_PER_CELL;
+        proteinHistory[c].push(avgProtein);
+        regulatorHistory[c].push(regulators[c]);
+        if (proteinHistory[c].length > historyLength) proteinHistory[c].shift();
+        if (regulatorHistory[c].length > historyLength) regulatorHistory[c].shift();
+      }
+    }
+
+    // ================= RENDERING =================
+    function renderCells() {
+      const container = document.getElementById('cells-container');
+      container.innerHTML = '';
+
+      const cellColors = ['#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899'];
+
+      for (let c = 0; c < CELLS; c++) {
+        const cellDiv = document.createElement('div');
+        cellDiv.className = 'flex-shrink-0 bg-slate-800/70 rounded-xl p-3 border border-cyan-900/40';
+        cellDiv.id = `cell-${c}`;
+        cellDiv.style.minWidth = '160px';
+
+        let modulesHTML = '<div class="grid grid-cols-5 gap-1 mb-3">';
+        for (let m = 0; m < MODULES_PER_CELL; m++) {
+          modulesHTML += `<div id="module-${c}-${m}" class="w-5 h-5 rounded-sm bg-slate-700 transition-all duration-150 relative" title="Module ${m + 1}"><div class="regulator-dot hidden absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full"></div></div>`;
+        }
+        modulesHTML += '</div>';
+
+        cellDiv.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold" style="color: ${cellColors[c]}">Cell ${c + 1}</span>
+            <span id="toggle-indicator-${c}" class="w-2 h-2 rounded-full bg-slate-600"></span>
+          </div>
+          ${modulesHTML}
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-500">Signal</span>
+              <span id="signal-val-${c}" class="mono text-cyan-400">0.00</span>
+            </div>
+            <div class="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div id="signal-bar-${c}" class="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 transition-all duration-150" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-xs mt-2">
+              <span class="text-slate-500">Regulators</span>
+              <span id="regulator-val-${c}" class="mono text-purple-400">0.00</span>
+            </div>
+            <div class="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div id="regulator-bar-${c}" class="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-150" style="width: 0%"></div>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(cellDiv);
+      }
+    }
+
+    function updateDisplay() {
+      const externalInput = Math.sin(0.1 * time) > 0 ? 1.0 : 0.0;
+
+      // Update time
+      document.getElementById('time-display').textContent = time.toFixed(2) + 's';
+
+      // Update stats
+      document.getElementById('stat-input').textContent = externalInput > 0.5 ? 'ON' : 'OFF';
+      document.getElementById('stat-input').className = `text-xl font-bold mono ${externalInput > 0.5 ? 'text-emerald-400' : 'text-slate-500'}`;
+
+      const avgSignal = signal.reduce((a, b) => a + b, 0) / CELLS;
+      document.getElementById('stat-signal').textContent = avgSignal.toFixed(2);
+
+      const avgRegulator = regulators.reduce((a, b) => a + b, 0) / CELLS;
+      document.getElementById('stat-regulators').textContent = avgRegulator.toFixed(2);
+
+      const activeToggles = toggleState.filter(t => t > 0.5).length;
+      document.getElementById('stat-toggles').textContent = `${activeToggles}/${CELLS}`;
+
+      let totalProtein = 0;
+      let totalDemand = 0;
+      for (let c = 0; c < CELLS; c++) {
+        totalProtein += protein[c].reduce((a, b) => a + b, 0);
+        totalDemand += promoter[c].reduce((a, b) => a + b, 0);
+      }
+      document.getElementById('stat-resource').textContent = Math.min(100, (totalDemand / (RESOURCE_CAPACITY * CELLS) * 100)).toFixed(0) + '%';
+
+      // Update cells visualization
+      const maxProtein = 15;
+      const maxSignal = 5;
+      const maxRegulator = 5;
+
+      for (let c = 0; c < CELLS; c++) {
+        // Update modules
+        for (let m = 0; m < MODULES_PER_CELL; m++) {
+          const moduleEl = document.getElementById(`module-${c}-${m}`);
+          const intensity = Math.min(1, protein[c][m] / maxProtein);
+          const hue = 180 + (c * 30);
+          moduleEl.style.backgroundColor = `hsl(${hue}, ${70 + intensity * 30}%, ${20 + intensity * 50}%)`;
+          
+          // Show regulator indicator
+          const regDot = moduleEl.querySelector('.regulator-dot');
+          if (regulators[c] > 0.5) {
+            regDot.classList.remove('hidden');
+          } else {
+            regDot.classList.add('hidden');
+          }
+        }
+
+        // Update signal bar
+        const signalPercent = Math.min(100, (signal[c] / maxSignal) * 100);
+        document.getElementById(`signal-bar-${c}`).style.width = signalPercent + '%';
+        document.getElementById(`signal-val-${c}`).textContent = signal[c].toFixed(2);
+
+        // Update regulator bar
+        const regPercent = Math.min(100, (regulators[c] / maxRegulator) * 100);
+        document.getElementById(`regulator-bar-${c}`).style.width = regPercent + '%';
+        document.getElementById(`regulator-val-${c}`).textContent = regulators[c].toFixed(2);
+
+        // Update toggle indicator
+        const toggleEl = document.getElementById(`toggle-indicator-${c}`);
+        toggleEl.className = `w-2 h-2 rounded-full transition-all ${toggleState[c] > 0.5 ? 'bg-amber-400 cell-active' : 'bg-slate-600'}`;
+
+        // Update cell border glow
+        const cellEl = document.getElementById(`cell-${c}`);
+        if (toggleState[c] > 0.5) {
+          cellEl.style.borderColor = 'rgba(251, 191, 36, 0.5)';
+          cellEl.style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.2)';
+        } else {
+          cellEl.style.borderColor = 'rgba(8, 145, 178, 0.4)';
+          cellEl.style.boxShadow = 'none';
+        }
+      }
+
+      // Update charts
+      drawCharts();
+    }
+
+    function drawCharts() {
+      drawChart('chart-protein', proteinHistory, ['#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899'], 15);
+      drawChart('chart-regulator', regulatorHistory, ['#a78bfa', '#c084fc', '#d8b4fe', '#e9d5ff', '#f3e8ff'], 5);
+    }
+
+    function drawChart(canvasId, data, colors, maxVal) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+      const width = rect.width;
+      const height = rect.height;
+
+      // Clear
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
+      ctx.fillRect(0, 0, width, height);
+
+      // Grid
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.1)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const y = (height / 5) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      // Draw lines
+      for (let c = 0; c < CELLS; c++) {
+        if (data[c].length < 2) continue;
+
+        ctx.strokeStyle = colors[c];
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+
+        for (let i = 0; i < data[c].length; i++) {
+          const x = (i / historyLength) * width;
+          const y = height - (data[c][i] / maxVal) * height;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    // ================= ANIMATION LOOP =================
+    function animate() {
+      if (!running) return;
+
+      // Run multiple steps per frame for speed
+      for (let i = 0; i < 5; i++) {
+        simulationStep();
+      }
+      updateDisplay();
+
+      animationId = requestAnimationFrame(animate);
+    }
+
+    // ================= EVENT HANDLERS =================
+    document.getElementById('btn-start').addEventListener('click', () => {
+      running = true;
+      animate();
+    });
+
+    document.getElementById('btn-pause').addEventListener('click', () => {
+      running = false;
+      if (animationId) cancelAnimationFrame(animationId);
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      running = false;
+      if (animationId) cancelAnimationFrame(animationId);
+      initSimulation();
+    });
+
+    // Parameter sliders
+    document.getElementById('param-degradation').addEventListener('input', (e) => {
+      params.degradation = parseFloat(e.target.value);
+      document.getElementById('val-degradation').textContent = params.degradation.toFixed(2);
+    });
+
+    document.getElementById('param-production').addEventListener('input', (e) => {
+      params.baseProduction = parseFloat(e.target.value);
+      document.getElementById('val-production').textContent = params.baseProduction.toFixed(1);
+    });
+
+    document.getElementById('param-diffusion').addEventListener('input', (e) => {
+      params.signalDiffusion = parseFloat(e.target.value);
+      document.getElementById('val-diffusion').textContent = params.signalDiffusion.toFixed(2);
+    });
+
+    document.getElementById('param-noise').addEventListener('input', (e) => {
+      params.noiseStrength = parseFloat(e.target.value);
+      document.getElementById('val-noise').textContent = params.noiseStrength.toFixed(2);
+    });
+
+    document.getElementById('param-regulation-type').addEventListener('change', (e) => {
+      params.regulationType = e.target.value;
+    });
+
+    document.getElementById('param-regulator-strength').addEventListener('input', (e) => {
+      params.regulatorStrength = parseFloat(e.target.value);
+      document.getElementById('val-regulator-strength').textContent = params.regulatorStrength.toFixed(1);
+    });
+
+    document.getElementById('param-regulation-threshold').addEventListener('input', (e) => {
+      params.regulationThreshold = parseFloat(e.target.value);
+      document.getElementById('val-regulation-threshold').textContent = params.regulationThreshold.toFixed(1);
+    });
+
+    document.getElementById('param-regulator-decay').addEventListener('input', (e) => {
+      params.regulatorDecay = parseFloat(e.target.value);
+      document.getElementById('val-regulator-decay').textContent = params.regulatorDecay.toFixed(2);
+    });
+
+    // ================= ELEMENT SDK =================
+    const defaultConfig = {
+      title_text: 'Distributed Cellular Circuit Simulator',
+      background_color: '#0a0a0f',
+      surface_color: '#0f172a',
+      text_color: '#22d3ee',
+      primary_action_color: '#0891b2',
+      secondary_action_color: '#334155'
+    };
+
+    async function onConfigChange(config) {
+      document.getElementById('main-title').textContent = config.title_text || defaultConfig.title_text;
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); }
+          },
+          {
+            get: () => config.surface_color || defaultConfig.surface_color,
+            set: (v) => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); }
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); }
+          },
+          {
+            get: () => config.primary_action_color || defaultConfig.primary_action_color,
+            set: (v) => { config.primary_action_color = v; window.elementSdk.setConfig({ primary_action_color: v }); }
+          },
+          {
+            get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+            set: (v) => { config.secondary_action_color = v; window.elementSdk.setConfig({ secondary_action_color: v }); }
+          }
+        ],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ['title_text', config.title_text || defaultConfig.title_text]
+      ]);
+    }
+
+    // Initialize
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    }
+
+    initSimulation();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9caa327be6137ffe',t:'MTc3MDU0Mzk1OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+    
+  </body>
+  
+</html>
